@@ -25,17 +25,25 @@ import {
     // Texture, // Import THREE.js internals
 } from "webgi";
 import "./styles.css";
-
+import gsap from "gsap"; 
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
 async function setupViewer(){
 
     // Initialize the viewer
     const viewer = new ViewerApp({
         canvas: document.getElementById('webgi-canvas') as HTMLCanvasElement,
-        useRgbm: false,
+        // useRgbm: false,
     })
+   const manager = await viewer.addPlugin(AssetManagerPlugin);
+   const camera = viewer.scene.activeCamera;
+   const postion = camera.position;
+   const target = camera.target;
 
     // Add plugins individually.
     await viewer.addPlugin(GBufferPlugin)
+
+
     await viewer.addPlugin(new ProgressivePlugin(32))
     await viewer.addPlugin(new TonemapPlugin(!viewer.useRgbm))
     // await viewer.addPlugin(GammaCorrectionPlugin)
@@ -64,7 +72,11 @@ async function setupViewer(){
     await viewer.addPlugin(CanvasSnipperPlugin)
 
     // Import and add a GLB file.
-    await viewer.load("./assets/drill.glb")
+
+    viewer.renderer.refreshPipeline()
+    await manager.addFromPath("./assets/drill.glb");
+    
+    // await viewer.load("./assets/drill.glb")
 
     // Load an environment map if not set in the glb file
     // await viewer.setEnvironmentMap("./assets/environment.hdr");
@@ -74,6 +86,47 @@ async function setupViewer(){
     // Add plugins to the UI to see their settings.
     // uiPlugin.setupPlugins<IViewerPlugin>(TonemapPlugin, CanvasSnipperPlugin)
 
+    function stopScrollAnimation(){
+    const tl = gsap.timeline();
+
+    //firstsection 
+
+    tl.to(postion , {x : 5, z: -3, duration: 4,
+        scrollTrigger : {
+            trigger: ".second",
+            start: "top bottom",
+            end: "top top",
+            markers: true,
+            scrub : 3,
+        },
+        onUpdate }
+    );
+
+    }
+
+  
+
+  stopScrollAnimation();
+
+  //WEBGI UPDATE
+
+  let needsUpdate = true;
+
+  function onUpdate(){
+    needsUpdate = true
+    viewer.renderer.resetShadows();
+  }
+  viewer.addEventListener('preFrame' , ()=>{
+    if(needsUpdate){
+        camera.positionUpdated(false);
+        camera.targetUpdated(true);
+        needsUpdate = false
+    }
+  })
+
+
 }
+
+
 
 setupViewer()
